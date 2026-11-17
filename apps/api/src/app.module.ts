@@ -3,6 +3,7 @@ import { APP_GUARD } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 
 import { DatabaseModule } from '../../../libs/database/src/database.module.js';
+import { BillingModule } from './billing/billing.module.js';
 import { HealthModule } from './health/health.module.js';
 import { InstallationsModule } from './installations/installations.module.js';
 import { NotificationsModule } from './notifications/notifications.module.js';
@@ -17,6 +18,7 @@ import { ProjectsModule } from './projects/projects.module.js';
     ProjectsModule,
     InstallationsModule,
     NotificationsModule,
+    BillingModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })

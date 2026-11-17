@@ -2,18 +2,20 @@ import { Injectable } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 
 import { PLAN_LIMITS } from '../../../../libs/contracts/src/index.js';
-import { Notification } from '../../../../libs/database/src/entities/index.js';
+import { Notification, Project } from '../../../../libs/database/src/entities/index.js';
 
 import type { DataSource } from 'typeorm';
 import type { DeliveryStatus } from '../../../../libs/contracts/src/index.js';
 
-/** Expires notification logs according to each plan's retention. */
+/** Expires paid plan periods and notification logs according to each plan's retention. */
 @Injectable()
 export class RetentionService {
   constructor(@InjectDataSource() private readonly dataSource: DataSource) {}
 
-  /** Purges cloud logs after plan retention and leaves self-hosted history intact. */
+  /** Ends lapsed paid periods, then purges cloud logs after plan retention. Self-hosted history stays. */
   async cleanup(): Promise<void> {
+    await this.expireLapsedPlans();
+
     for (const [plan, { logRetentionDays }] of Object.entries(PLAN_LIMITS)) {
       if (logRetentionDays === null) continue;
 
@@ -29,5 +31,19 @@ export class RetentionService {
         )
         .execute();
     }
+  }
+
+  /**
+   * Returns projects whose paid Pro period ended to the free plan. A single statement, so it takes
+   * the same row lock as `lockProject` and skips a project whose payment extended it first.
+   */
+  async expireLapsedPlans(): Promise<void> {
+    await this.dataSource
+      .createQueryBuilder()
+      .update(Project)
+      .set({ plan: 'free', planExpiresAt: null })
+      .where("plan = 'pro'")
+      .andWhere('plan_expires_at <= now()')
+      .execute();
   }
 }

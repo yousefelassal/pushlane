@@ -13,6 +13,7 @@ export function configureApi(app: INestApplication): void {
     .filter(Boolean);
 
   app.use(helmet());
+  app.use('/v1/billing/paymob/callback', express.json({ limit: '64kb' }));
   app.use(express.json({ limit: '8kb' }));
   app.enableCors({
     origin: origins,

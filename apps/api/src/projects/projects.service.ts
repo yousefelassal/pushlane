@@ -78,6 +78,7 @@ export class ProjectsService {
       name: project.name,
       environment: project.environment,
       plan: project.plan,
+      planExpiresAt: project.planExpiresAt?.toISOString() ?? null,
       providers: Object.keys(credentials),
       webPushPublicKey: credentials.webpush?.publicKey ?? null,
       usage: {
