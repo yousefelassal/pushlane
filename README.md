@@ -125,7 +125,8 @@ Native tests cover client HTTP behavior. Real APNs and FCM delivery, physical-de
 
 - `apps/api` is the NestJS HTTP service. Each feature (`projects`, `installations`, `notifications`, `health`) is a module with its controller and service.
 - `apps/worker` is the independent delivery worker. `delivery` owns the queue consumer.
-- `apps/dashboard` is a static TypeScript dashboard deployed to Cloudflare Workers static assets.
+- `apps/dashboard` is a React, Vite, and TanStack dashboard deployed to Cloudflare Workers static assets.
+- `packages/ui` holds the shared shadcn components and Tailwind theme for every frontend.
 - `apps/docs` is the Astro Starlight documentation site.
 - `libs/contracts` holds shared schemas. `libs/database` holds TypeORM entities, migrations, and credential encryption. `libs/providers` holds the APNs, FCM, and Web Push transports.
 - `packages/sdk` contains the TypeScript server, browser, and service worker clients.

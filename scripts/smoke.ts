@@ -196,20 +196,28 @@ try {
     const errors: string[] = [];
 
     page.on('pageerror', (error) => errors.push(error.message));
+    page.on('console', (message) => {
+      if (message.type() === 'error') errors.push(message.text());
+    });
 
     await page.goto(dashboardUrl);
     await page.getByLabel('Project API key').fill(project.apiKey);
     await page.getByRole('button', { name: 'Connect project' }).click();
-    await expect(page.locator('#project-name')).toHaveText('Local verification');
+    await expect(
+      page.getByRole('region', { name: 'Project overview' }).getByText('Local verification')
+    ).toBeVisible();
     await expect(page.getByText('Live local check', { exact: true })).toBeVisible();
     await page.getByRole('button', { name: 'Inspect Live local check' }).click();
-    await expect(page.locator('#detail-content')).toContainText('FCM_NOT_CONFIGURED');
+    await expect(page.getByRole('dialog')).toContainText('FCM_NOT_CONFIGURED');
     await page.getByRole('button', { name: 'Close notification details' }).click();
     await page.getByRole('button', { name: 'Send notification', exact: false }).first().click();
-    await page.locator('#send-user').fill('no-registered-device');
-    await page.locator('#send-title').fill('Sent from the dashboard');
-    await page.locator('#send-body').fill('The live API accepts this dashboard request.');
-    await page.locator('#submit-send').click();
+    await page.getByRole('dialog').getByLabel('User ID').fill('no-registered-device');
+    await page.getByRole('dialog').getByLabel('Title').fill('Sent from the dashboard');
+    await page
+      .getByRole('dialog')
+      .getByLabel('Body')
+      .fill('The live API accepts this dashboard request.');
+    await page.getByRole('dialog').getByRole('button', { name: 'Send notification' }).click();
     await expect(page.getByText('Sent from the dashboard', { exact: true })).toBeVisible();
     await page.setViewportSize({ width: 390, height: 844 });
 

@@ -29,7 +29,7 @@
     "start:worker": "node --env-file-if-exists=.env dist/apps/worker/src/main.js",
     "test": "vitest run",
     "test:integration": "vitest run --config vitest.integration.config.ts",
-    "typecheck": "tsc --noEmit && pnpm --filter @pushlane/sdk typecheck"
+    "typecheck": "tsc --noEmit && pnpm --filter @pushlane/sdk --filter @pushlane/ui typecheck"
   },
   "dependencies": {
     "@nestjs/common": "12.5.1",

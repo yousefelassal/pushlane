@@ -3,8 +3,8 @@ import { createContext, useCallback, useContext, useMemo, useRef, useState } fro
 
 import { projectSchema, request } from './api';
 
-import type { Project } from './api';
 import type { ReactNode } from 'react';
+import type { Project } from './api';
 
 /**
  * The connected project and its backend key.

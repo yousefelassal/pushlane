@@ -1,6 +1,6 @@
-import { Badge } from '@pushlane/ui/components/badge';
-
 import { statusLabels } from '@/lib/format';
+
+import { Badge } from '@pushlane/ui/components/badge';
 
 import type { ComponentProps } from 'react';
 

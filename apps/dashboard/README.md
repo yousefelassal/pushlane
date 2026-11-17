@@ -1,6 +1,6 @@
 # Pushlane dashboard
 
-The dashboard is a static Vite application deployed to Cloudflare Workers as static assets. No Worker script runs. The API does not serve it. It connects to one project using its backend API key. The key stays in module memory and is cleared on reload or disconnect. The current release has no team sign-in or operator roles.
+The dashboard is a React single-page app built with Vite and the TanStack libraries. It is deployed to Cloudflare Workers as static assets. No Worker script runs. The API does not serve it. It connects to one project using its backend API key. The key stays in React state and is cleared on reload or disconnect. The current release has no team sign-in or operator roles.
 
 ## Develop
 
@@ -35,6 +35,12 @@ The smoke script drives the built page in Chromium against controlled HTTP API r
 
 ## Ownership
 
-`src/api.ts` validates API responses and sends authenticated requests. `src/dom.ts` builds text-only DOM content. `src/main.ts` owns connection state, requests, and page actions. `src/style.css` owns layout and presentation.
+- `src/lib/api.ts` validates API responses with zod and sends authenticated requests.
+- `src/lib/session.tsx` owns the connection. Each connection has its own query key scope and abort signal, so disconnecting cancels requests and drops cached data.
+- `src/lib/queries.ts` defines the TanStack Query options for the project, the paged logs, notification details, and sends.
+- `src/router.tsx` defines the TanStack Router routes. The user filter, open notification, and send dialog live in validated search params.
+- `src/components` holds the page. Shared primitives come from `@pushlane/ui`.
 
-Notification payloads and provider errors are rendered through `textContent`. Do not replace that boundary with HTML interpolation. A successful send reports durable acceptance. The page does not label provider acceptance as device receipt.
+Add a shadcn component to the shared package from this directory with `pnpm dlx shadcn@4.23.0 add <name>`. The CLI writes it to `packages/ui`.
+
+React renders notification payloads and provider errors as text. Do not use `dangerouslySetInnerHTML`. The Content Security Policy forbids inline styles and runtime code evaluation, and `pnpm smoke` fails on any violation. A successful send reports durable acceptance. The page does not label provider acceptance as device receipt.

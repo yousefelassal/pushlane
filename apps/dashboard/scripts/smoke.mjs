@@ -149,15 +149,11 @@ try {
   await page.getByLabel('Project API key').fill('browser-test-key');
   await page.getByRole('button', { name: 'Connect project' }).click();
   await page.getByText(notification.title, { exact: true }).waitFor();
+  assert.equal(await page.locator('table img').count(), 0, 'Notification titles remain text.');
   assert.equal(
-    await page.locator('#notification-rows img').count(),
+    await page.getByLabel('Project API key').count(),
     0,
-    'Notification titles remain text.'
-  );
-  assert.equal(
-    await page.getByLabel('Project API key').inputValue(),
-    '',
-    'The credential input clears after connecting.'
+    'The credential input is removed after connecting.'
   );
   assert.equal(
     await page.evaluate(() => localStorage.length + sessionStorage.length),
@@ -174,13 +170,13 @@ try {
   await page.getByText('1 notification loaded for another-user', { exact: true }).waitFor();
   assert.equal(queries.at(-1).get('userId'), 'another-user');
 
-  await page.locator('#send-button').click();
+  await page.getByRole('main').getByRole('button', { name: 'Send notification' }).click();
   await page.getByLabel('User ID', { exact: true }).fill('user_123');
   await page.getByLabel('Title', { exact: true }).fill('Order shipped');
   await page.getByLabel('Body', { exact: true }).fill('Arrives tomorrow.');
-  await page.locator('#submit-send').click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Send notification' }).click();
   await page.getByText('Please retry this request.', { exact: true }).waitFor();
-  await page.locator('#submit-send').click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Send notification' }).click();
   await page
     .getByText('Notification new-notification was queued for 1 installation.', {
       exact: true,
@@ -209,7 +205,7 @@ try {
   assert(
     await page.getByRole('heading', { name: 'Your next notification starts here.' }).isVisible()
   );
-  assert.equal(await page.locator('#notification-rows tr').count(), 0);
+  assert.equal(await page.locator('table tbody tr').count(), 0);
 
   await page.setViewportSize({ width: 390, height: 844 });
   assert.equal(

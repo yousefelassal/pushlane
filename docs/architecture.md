@@ -10,7 +10,7 @@ Pushlane registers authenticated installations and sends a notification to the a
 - `libs/database` owns the TypeORM connection, entities, migrations, and credential encryption. Entities are the schema source. Migrations are generated from them and never edited after release.
 - `libs/providers` owns APNs, FCM, and Web Push transports.
 - `packages/sdk` owns the server and browser TypeScript clients. `sdks` contains Swift and Kotlin clients.
-- `apps/dashboard` owns the static dashboard, deployed separately to Cloudflare Workers static assets. `apps/docs` owns Astro Starlight documentation.
+- `apps/dashboard` owns the React dashboard, deployed separately to Cloudflare Workers static assets. `packages/ui` owns the shared shadcn components and theme. `apps/docs` owns Astro Starlight documentation.
 
 ## Authentication contract
 

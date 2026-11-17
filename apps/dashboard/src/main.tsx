@@ -1,6 +1,6 @@
 import '@pushlane/ui/globals.css';
+import './lib/zod-config';
 
-import { Toaster } from '@pushlane/ui/components/sonner';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { RouterProvider } from '@tanstack/react-router';
 import { StrictMode } from 'react';
@@ -24,7 +24,6 @@ createRoot(root).render(
     <QueryClientProvider client={queryClient}>
       <SessionProvider>
         <RouterProvider router={router} />
-        <Toaster position="top-center" />
       </SessionProvider>
     </QueryClientProvider>
   </StrictMode>
