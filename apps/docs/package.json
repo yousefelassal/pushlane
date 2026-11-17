@@ -1,17 +1,17 @@
 {
-	"name": "@pushlane/docs",
-	"version": "0.1.0",
-	"private": true,
-	"type": "module",
-	"scripts": {
-		"dev": "astro dev --host 127.0.0.1",
-		"build": "astro sync && tsc --noEmit && astro build"
-	},
-	"dependencies": {
-		"@astrojs/starlight": "0.36.0",
-		"astro": "5.18.2"
-	},
-	"devDependencies": {
-		"typescript": "5.9.3"
-	}
+  "name": "@pushlane/docs",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "astro sync && tsc --noEmit && astro build",
+    "dev": "astro dev --host 127.0.0.1"
+  },
+  "dependencies": {
+    "@astrojs/starlight": "0.36.0",
+    "astro": "5.18.2"
+  },
+  "devDependencies": {
+    "typescript": "5.9.3"
+  }
 }

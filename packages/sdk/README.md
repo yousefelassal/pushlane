@@ -20,7 +20,7 @@ const notification = await push.send(
     image: 'https://example.com/package.jpg',
     url: 'https://example.com/orders/123',
   },
-  { idempotencyKey: 'order-123-shipped' },
+  { idempotencyKey: 'order-123-shipped' }
 );
 ```
 

@@ -4,7 +4,7 @@ Use Node.js 24 and pnpm 10.32.1. The NestJS 12 API and worker are ESM. Relative 
 
 Read `docs/architecture.md` before changing authentication, endpoint ownership, queue state, or allowance reservation. HTTP inputs and external provider responses are untrusted. Parse them at their boundaries. Keep shared shapes in `libs/contracts`.
 
-Use the existing Oxlint and Prettier configuration copied from Pushpilot. Add JSDoc to public TypeScript APIs. Explain the contract or non-obvious behavior. Keep blank lines between logical operations. Avoid comment narration and unnecessary wrappers.
+Use the repository Oxlint and Prettier configuration. Prettier sorts imports and `package.json` keys. Add JSDoc to public TypeScript APIs. Explain the contract or non-obvious behavior. Keep blank lines between logical operations. Avoid comment narration and unnecessary wrappers.
 
 Notifications and delivery jobs must commit atomically. Every project lookup must include project scope. A registration token must never grant backend permissions. Logout and account switching must not resurrect old bindings. Endpoint invalidation must match the dispatched version and session.
 

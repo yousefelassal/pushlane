@@ -104,7 +104,7 @@ Self-hosted projects have no software dispatch allowance or automatic log deleti
 pnpm check
 ```
 
-This runs typechecking, the copied Pushpilot Oxlint and Prettier rules, provider and SDK tests, Nest builds, dashboard build, and Starlight build.
+This runs typechecking, Oxlint and Prettier, provider and SDK tests, Nest builds, dashboard build, and Starlight build.
 
 Integration tests require a dedicated PostgreSQL database. They do not truncate an existing database.
 
