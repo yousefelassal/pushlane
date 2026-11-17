@@ -1,0 +1,12 @@
+ts	phase	decision	why	evidence	result
+2026-11-17T20:00:00Z	frame	Use Pushlane as the initial repository name	Pushpilot already exists and the user requested a new repository	docs/architecture.md	open
+2026-11-17T20:01:00Z	design	Use PostgreSQL for durable delivery jobs without Redis	Both alternatives and the independent judge favored one durable state authority	docs/architecture.md	accepted
+2026-11-17T20:02:00Z	foundation	Copy Pushpilot lint rules and Prettier options	The user requested the existing style configuration	oxlint.config.ts,.prettierrc.json	copied
+2026-11-17T20:22:00Z	audit	The first three timestamps were approximate reconstructed event times	The initial trail was written as one batch rather than stamped at each event	.audit/implementation.tsv:2	Supersedes the exact-time interpretation of rows 2 to 4
+2026-11-17T20:22:01+00:00	verification	Passed 14 HTTP and PostgreSQL integration tests	Verify durable acceptance, isolation, logout and worker recovery against a real database	test/push.integration.spec.ts	14 passed before review fixes
+2026-11-17T20:22:01+00:00	review	Independent review found endpoint transfer, Web Push DNS, SDK ordering, expiry and connection lifecycle defects	A separate reviewer found gaps beyond the first test suite	docs/review.md	Fixes in progress
+2026-11-17T20:22:35+00:00	audit	Timestamp on the audit correction row was also reconstructed	All subsequent rows use the system UTC clock	docs/design-review.md	Rows 2 to 5 timestamps are approximate; design verdicts now preserved
+2026-11-17T20:27:58+00:00	verification	Full repository check passed	Typecheck, lint, formatting, 57 tests and all builds passed	package.json:scripts.check	VERIFIED
+2026-11-17T20:27:58+00:00	verification	Ran the built API and worker with the live dashboard	The headless browser inspected actual PostgreSQL-backed logs and sent a real API request	scripts/smoke.ts	VERIFIED
+2026-11-17T20:27:58+00:00	verification	Expanded PostgreSQL integration coverage to 20 tests	Added transfer, credential version, expiry, retention and actual API restart regressions	test/push.integration.spec.ts	20 passed
+2026-11-17T20:27:58+00:00	review	Implemented all first-review code fixes	Regression tests now cover each confirmed defect	docs/review.md	Awaiting independent follow-up

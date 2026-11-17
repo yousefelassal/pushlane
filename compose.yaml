@@ -1,0 +1,19 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: pushlane
+      POSTGRES_PASSWORD: pushlane
+      POSTGRES_DB: pushlane
+    ports:
+      - '127.0.0.1:54328:5432'
+    volumes:
+      - pushlane_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U pushlane -d pushlane']
+      interval: 2s
+      timeout: 5s
+      retries: 20
+
+volumes:
+  pushlane_data:

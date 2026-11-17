@@ -1,0 +1,226 @@
+import 'reflect-metadata';
+import assert from 'node:assert/strict';
+import { randomUUID } from 'node:crypto';
+import { spawn, type ChildProcess } from 'node:child_process';
+import { createServer } from 'node:net';
+import { once } from 'node:events';
+import { setTimeout } from 'node:timers/promises';
+import { NestFactory } from '@nestjs/core';
+import { chromium, expect } from '@playwright/test';
+import { z } from 'zod';
+import { CoreModule } from '../libs/core/src/core.module.js';
+import { Projects } from '../libs/core/src/projects.js';
+
+/** Waits for a real HTTP state with a bounded deadline and a useful failure. */
+async function eventually(
+	check: () => Promise<boolean>,
+	description: string,
+): Promise<void> {
+	const deadline = Date.now() + 15_000;
+
+	while (Date.now() < deadline) {
+		if (await check().catch(() => false)) return;
+
+		await setTimeout(100);
+	}
+
+	throw new Error(`Timed out waiting for ${description}.`);
+}
+
+async function stop(child: ChildProcess): Promise<void> {
+	if (child.exitCode !== null || child.signalCode !== null) return;
+
+	const exited = once(child, 'exit');
+
+	child.kill('SIGTERM');
+
+	await exited;
+}
+
+const probe = createServer();
+
+probe.listen(0, '127.0.0.1');
+
+await once(probe, 'listening');
+
+const address = probe.address();
+
+assert(address && typeof address !== 'string');
+
+const port = address.port;
+
+await new Promise<void>((resolve, reject) =>
+	probe.close((error) => (error ? reject(error) : resolve())),
+);
+
+const context = await NestFactory.createApplicationContext(CoreModule, {
+	logger: false,
+});
+const project = await context.get(Projects).create({
+	name: 'Local verification',
+	environment: 'development',
+	plan: 'self_hosted',
+	credentials: {},
+});
+
+await context.close();
+
+const baseUrl = `http://127.0.0.1:${port}`;
+const childEnvironment = {
+	...process.env,
+	PORT: String(port),
+	HOST: '127.0.0.1',
+	WORKER_INTERVAL_MS: '100',
+};
+const api = spawn(process.execPath, ['dist/apps/api/src/main.js'], {
+	env: childEnvironment,
+	stdio: ['ignore', 'ignore', 'pipe'],
+});
+const worker = spawn(process.execPath, ['dist/apps/worker/src/main.js'], {
+	env: childEnvironment,
+	stdio: ['ignore', 'ignore', 'pipe'],
+});
+let diagnostics = '';
+
+for (const child of [api, worker]) {
+	child.stderr?.on('data', (chunk: Buffer) => {
+		diagnostics += chunk.toString();
+	});
+}
+
+async function request(
+	path: string,
+	method = 'GET',
+	body?: unknown,
+	key = project.apiKey,
+) {
+	return fetch(`${baseUrl}${path}`, {
+		method,
+		headers: {
+			Authorization: `Bearer ${key}`,
+			'Content-Type': 'application/json',
+			'Idempotency-Key': randomUUID(),
+		},
+		...(body === undefined ? {} : { body: JSON.stringify(body) }),
+	});
+}
+
+try {
+	await eventually(
+		async () => (await fetch(`${baseUrl}/health`)).ok,
+		'the compiled API',
+	);
+
+	const installationId = randomUUID();
+	const userId = `smoke-${randomUUID()}`;
+	const tokenResponse = await request('/v1/registration-tokens', 'POST', {
+		userId,
+		installationId,
+	});
+	const { token } = z
+		.object({ token: z.string() })
+		.parse(await tokenResponse.json());
+	const registration = await request(
+		`/v1/installations/${installationId}`,
+		'PUT',
+		{ kind: 'fcm', token: `smoke-${randomUUID()}` },
+		token,
+	);
+
+	assert.equal(registration.status, 200);
+
+	const sent = await request('/v1/notifications', 'POST', {
+		userId,
+		title: 'Live local check',
+		body: 'Compiled API, database, worker, and dashboard.',
+	});
+	const receipt = z
+		.object({ id: z.uuid(), deliveryCount: z.number() })
+		.parse(await sent.json());
+
+	assert.equal(sent.status, 202);
+	assert.equal(receipt.deliveryCount, 1);
+
+	await eventually(async () => {
+		const response = await request(`/v1/notifications/${receipt.id}`);
+		const log = z
+			.object({
+				notification: z.object({ status: z.string() }),
+				deliveries: z.array(z.object({ lastError: z.string().nullable() })),
+			})
+			.parse(await response.json());
+
+		return (
+			log.notification.status === 'failed' &&
+			log.deliveries[0]?.lastError === 'FCM_NOT_CONFIGURED'
+		);
+	}, 'the compiled worker to record the missing provider configuration');
+
+	const browser = await chromium.launch({ headless: true });
+
+	try {
+		const page = await browser.newPage({
+			viewport: { width: 1440, height: 1000 },
+		});
+		const errors: string[] = [];
+
+		page.on('pageerror', (error) => errors.push(error.message));
+
+		await page.goto(`${baseUrl}/dashboard/`);
+		await page.getByLabel('Project API key').fill(project.apiKey);
+		await page.getByRole('button', { name: 'Connect project' }).click();
+		await expect(page.locator('#project-name')).toHaveText(
+			'Local verification',
+		);
+		await expect(
+			page.getByText('Live local check', { exact: true }),
+		).toBeVisible();
+		await page
+			.getByRole('button', { name: 'Inspect Live local check' })
+			.click();
+		await expect(page.locator('#detail-content')).toContainText(
+			'FCM_NOT_CONFIGURED',
+		);
+		await page
+			.getByRole('button', { name: 'Close notification details' })
+			.click();
+		await page
+			.getByRole('button', { name: 'Send notification', exact: false })
+			.first()
+			.click();
+		await page.locator('#send-user').fill('no-registered-device');
+		await page.locator('#send-title').fill('Sent from the dashboard');
+		await page
+			.locator('#send-body')
+			.fill('The live API accepts this dashboard request.');
+		await page.locator('#submit-send').click();
+		await expect(
+			page.getByText('Sent from the dashboard', { exact: true }),
+		).toBeVisible();
+		await page.setViewportSize({ width: 390, height: 844 });
+
+		assert.equal(
+			await page.evaluate(
+				() => document.documentElement.scrollWidth <= window.innerWidth,
+			),
+			true,
+		);
+		assert.deepEqual(errors, []);
+
+		await page.getByRole('button', { name: 'Disconnect', exact: true }).click();
+		await expect(page.getByLabel('Project API key')).toHaveValue('');
+	} finally {
+		await browser.close();
+	}
+
+	process.stdout.write(
+		'Verified compiled API, PostgreSQL persistence, worker failure logs, and live dashboard connection, inspection, sending, mobile layout, and disconnect.\n',
+	);
+} catch (error) {
+	if (diagnostics) process.stderr.write(diagnostics);
+
+	throw error;
+} finally {
+	await stop(worker);
+	await stop(api);
+}

@@ -1,0 +1,42 @@
+---
+title: Push to a user, across their devices
+description: Open source transactional push for native iOS, native Android, and the web.
+template: splash
+hero:
+  title: One user. One send.
+  tagline: Register authenticated installations, send a notification to your user ID, and inspect every provider attempt.
+  actions:
+    - text: Send your first notification
+      link: /quickstart/
+      icon: right-arrow
+    - text: Read the API
+      link: /reference/http/
+      variant: secondary
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+<CardGrid>
+  <Card title="Use your user IDs" icon="user">
+    Register each app installation or browser subscription under a user ID that
+    your backend authenticates.
+  </Card>
+  <Card title="Keep sending durable" icon="rocket">
+    PostgreSQL stores the notification and its device jobs together. Workers
+    retry transient provider failures and recover abandoned work.
+  </Card>
+  <Card title="Read useful logs" icon="magnifier">
+    See queued work, provider acceptance, retries, expired messages, and invalid
+    endpoints for each installation.
+  </Card>
+  <Card title="Host the complete core" icon="setting">
+    The API, worker, SDKs, dashboard, and documentation are open source. Cloud
+    plan accounting is included. Payment collection is not.
+  </Card>
+</CardGrid>
+
+## What Pushlane handles
+
+Pushlane maps your user ID to active installations and routes notifications through APNs, FCM, or Web Push. Your app still requests notification permission and completes its platform setup. Your backend authenticates the user before it issues an installation registration token.
+
+A provider accepting a message does not prove that the device displayed it. Pushlane reports provider acceptance explicitly. Read [delivery states](/reference/delivery/) before you build alerts around them.
