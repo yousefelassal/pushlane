@@ -10,6 +10,7 @@ import type { Environment, Plan } from '../../../contracts/src/index.js';
 @Check('length("name") BETWEEN 1 AND 200')
 @Check(oneOf('environment', environmentSchema.options))
 @Check(oneOf('plan', planSchema.options))
+@Check(`"plan_expires_at" IS NULL OR "plan" = 'pro'`)
 export class Project {
   @PrimaryColumn('uuid')
   id!: string;
@@ -22,6 +23,10 @@ export class Project {
 
   @Column('text')
   plan!: Plan;
+
+  /** End of the paid Pro period. Null means the plan does not lapse. The worker downgrades lapsed projects to free. */
+  @Column({ type: 'timestamptz', precision: 3, nullable: true })
+  planExpiresAt!: Date | null;
 
   @Column('text', { unique: true, select: false })
   apiKeyHash!: string;

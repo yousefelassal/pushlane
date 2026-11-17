@@ -4,6 +4,7 @@ import { InstallationSession } from './installation-session.entity.js';
 import { Installation } from './installation.entity.js';
 import { MonthlyUsage } from './monthly-usage.entity.js';
 import { Notification } from './notification.entity.js';
+import { Payment } from './payment.entity.js';
 import { Project } from './project.entity.js';
 
 export {
@@ -13,6 +14,7 @@ export {
   InstallationSession,
   MonthlyUsage,
   Notification,
+  Payment,
   Project,
 };
 
@@ -24,4 +26,5 @@ export const entities = [
   Notification,
   Delivery,
   DeliveryAttempt,
+  Payment,
 ];

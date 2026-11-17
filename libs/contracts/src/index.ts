@@ -163,3 +163,25 @@ export const PLAN_LIMITS = {
   pro: { monthlyDispatches: 1_000_000, logRetentionDays: 30 },
   self_hosted: { monthlyDispatches: null, logRetentionDays: null },
 } satisfies Record<Plan, { monthlyDispatches: number | null; logRetentionDays: number | null }>;
+
+/** The paying contact Paymob requires on every intention. Paymob rejects an intention without a phone number. */
+export const checkoutRequestSchema = z
+  .object({
+    customer: z
+      .object({
+        firstName: z.string().trim().min(1).max(100),
+        lastName: z.string().trim().min(1).max(100),
+        email: z.email().max(254),
+        phone: z.string().regex(/^\+?[0-9]{8,15}$/, 'Use an international phone number.'),
+      })
+      .strict(),
+  })
+  .strict();
+
+export type CheckoutRequest = z.infer<typeof checkoutRequestSchema>;
+
+/** A hosted checkout for one month of Pro. The plan changes only after Paymob's signed callback. */
+export interface CheckoutSession {
+  paymentId: string;
+  checkoutUrl: string;
+}

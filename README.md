@@ -95,7 +95,7 @@ The dashboard searches by user ID and shows each installation's attempts. Provid
 
 PostgreSQL stores notifications and delivery jobs in one transaction. Workers use expiring leases, bounded provider calls, and at most five provider attempts. A worker crash after provider acceptance can cause a duplicate. Logout suppresses jobs that have not passed dispatch authorization. It cannot recall provider requests already in flight.
 
-Self-hosted projects have no software dispatch allowance or automatic log deletion. The `free` and `pro` configurations reserve one allowance unit per target installation on acceptance. Retries reserve no additional units. Their current limits are 10000 and 1000000 monthly dispatches, with 7 and 30 days of completed log retention. These are initial configuration defaults. They are not published prices or a payment integration. Idempotency records remain available while their notification log is retained.
+Self-hosted projects have no software dispatch allowance or automatic log deletion. The `free` and `pro` configurations reserve one allowance unit per target installation on acceptance. Retries reserve no additional units. Their current limits are 10000 and 1000000 monthly dispatches, with 7 and 30 days of completed log retention. These are initial configuration defaults, not published prices. A server configured with Paymob sells Pro one month at a time. Idempotency records remain available while their notification log is retained.
 
 ## Develop and verify
 

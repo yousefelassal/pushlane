@@ -75,6 +75,32 @@ The status is `no_registered_devices` when there are no eligible installations. 
 
 `GET /v1/project` requires the backend key. The response includes nonsecret project configuration, configured provider names, and usage. It never returns private provider credentials.
 
+## Buy a month of Pro
+
+`POST /v1/billing/checkout` requires the backend key and returns HTTP 201 with a Paymob hosted checkout URL. Paymob requires a contact for every payment.
+
+```json
+{
+  "customer": {
+    "firstName": "Mona",
+    "lastName": "Adel",
+    "email": "mona@example.com",
+    "phone": "+201234567890"
+  }
+}
+```
+
+```json
+{
+  "paymentId": "payment-uuid",
+  "checkoutUrl": "https://accept.paymob.com/unifiedcheckout/?publicKey=...&clientSecret=..."
+}
+```
+
+Open `checkoutUrl` in a browser. Paymob returns the payer to the server's configured return URL. That redirect does not confirm payment. The plan changes only after Paymob calls `POST /v1/billing/paymob/callback` with a valid HMAC signature. Read `GET /v1/project` to see the result.
+
+A server without Paymob configuration returns HTTP 404. A project that cannot buy Pro returns HTTP 409. A Paymob failure returns HTTP 502.
+
 ## Errors
 
 Malformed payloads return HTTP 400. Missing or invalid credentials return HTTP 401. Expired or revoked tokens cannot register an installation. A known installation token can still revoke its own session after expiry. Unknown resources return HTTP 404. Idempotency conflicts return HTTP 409. Usage limits reject additional accepted work rather than silently dropping it.
