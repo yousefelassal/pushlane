@@ -5,22 +5,22 @@ import { once } from 'node:events';
 import { createServer } from 'node:http';
 import { Test } from '@nestjs/testing';
 import { ThrottlerGuard } from '@nestjs/throttler';
+import { DataSource } from 'typeorm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { z } from 'zod';
 
 import { AppModule } from '../apps/api/src/app.module.js';
 import { configureApi } from '../apps/api/src/configure.js';
+import { ProjectsService } from '../apps/api/src/projects/projects.service.js';
+import { DeliveryWorker, DISPATCHER } from '../apps/worker/src/delivery/delivery-worker.service.js';
+import { DeliveryModule } from '../apps/worker/src/delivery/delivery.module.js';
 import {
   type Dispatcher,
   type DispatchRequest,
   type DispatchResult,
 } from '../libs/contracts/src/index.js';
-import { DeliveryWorker } from '../libs/core/src/delivery-worker.js';
-import { Projects } from '../libs/core/src/projects.js';
 import { SecretCipher } from '../libs/database/src/cipher.js';
-import { Database } from '../libs/database/src/database.js';
-import { runMigrations } from '../libs/database/src/migrations.js';
-import { ProviderDispatcher } from '../libs/providers/src/index.js';
+import { dataSourceOptions } from '../libs/database/src/data-source.js';
 
 import type { INestApplication } from '@nestjs/common';
 import type { Server } from 'node:http';
@@ -56,8 +56,8 @@ const logSchema = z.object({
 describe('Pushlane over HTTP and PostgreSQL', () => {
   let app: INestApplication;
   let baseUrl: string;
-  let db: Database;
-  let projects: Projects;
+  let db: DataSource;
+  let projects: ProjectsService;
   let worker: DeliveryWorker;
   let receiver: Server;
   let receiverUrl: string;
@@ -109,7 +109,11 @@ describe('Pushlane over HTTP and PostgreSQL', () => {
       'postgresql://pushlane:pushlane@127.0.0.1:54328/pushlane_test';
     process.env.ENCRYPTION_KEY = '01'.repeat(32);
 
-    await runMigrations(process.env.DATABASE_URL);
+    const migrator = await new DataSource(dataSourceOptions(process.env.DATABASE_URL)).initialize();
+
+    await migrator.dropDatabase();
+    await migrator.runMigrations();
+    await migrator.destroy();
 
     receiver = createServer((request, response) => {
       let body = '';
@@ -140,9 +144,10 @@ describe('Pushlane over HTTP and PostgreSQL', () => {
 
   async function startApplication() {
     const module = await Test.createTestingModule({
-      imports: [AppModule],
-      providers: [DeliveryWorker, { provide: ProviderDispatcher, useValue: dispatcher }],
+      imports: [AppModule, DeliveryModule],
     })
+      .overrideProvider(DISPATCHER)
+      .useValue(dispatcher)
       .overrideGuard(ThrottlerGuard)
       .useValue({ canActivate: () => true })
       .compile();
@@ -154,8 +159,8 @@ describe('Pushlane over HTTP and PostgreSQL', () => {
     await app.listen(0, '127.0.0.1');
 
     baseUrl = await app.getUrl();
-    db = app.get(Database);
-    projects = app.get(Projects);
+    db = app.get(DataSource);
+    projects = app.get(ProjectsService);
     worker = app.get(DeliveryWorker);
   }
 
@@ -411,7 +416,7 @@ describe('Pushlane over HTTP and PostgreSQL', () => {
 
     expect(first.deliveries[0]?.status).toBe('retrying');
 
-    await db.execute(
+    await db.query(
       "UPDATE deliveries SET next_attempt_at = now() - interval '1 second' WHERE notification_id = $1",
       [receipt.id]
     );
@@ -440,7 +445,7 @@ describe('Pushlane over HTTP and PostgreSQL', () => {
 
     const receipt = await send(apiKey, userId);
 
-    await db.execute(
+    await db.query(
       "UPDATE deliveries SET status = 'processing', attempt_count = 1, lease_token = $2, lease_expires_at = now() - interval '1 second' WHERE notification_id = $1",
       [receipt.id, randomUUID()]
     );
@@ -463,11 +468,7 @@ describe('Pushlane over HTTP and PostgreSQL', () => {
     await register(apiKey, userId);
 
     const receipt = await send(apiKey, userId);
-    const secondWorker = new DeliveryWorker(
-      db,
-      app.get(SecretCipher),
-      Object.assign(new ProviderDispatcher(), dispatcher)
-    );
+    const secondWorker = new DeliveryWorker(db, app.get(SecretCipher), dispatcher);
 
     await Promise.all([worker.tick(), secondWorker.tick()]);
 
@@ -485,7 +486,7 @@ describe('Pushlane over HTTP and PostgreSQL', () => {
 
     const receipt = await send(apiKey, userId);
 
-    await db.execute(
+    await db.query(
       "UPDATE notifications SET expires_at = now() - interval '1 second' WHERE id = $1",
       [receipt.id]
     );
@@ -522,7 +523,7 @@ describe('Pushlane over HTTP and PostgreSQL', () => {
     const userId = randomUUID();
 
     await register(apiKey, userId);
-    await db.execute(
+    await db.query(
       "INSERT INTO monthly_usage (project_id, month, reserved_dispatches) VALUES ($1, date_trunc('month', now() AT TIME ZONE 'UTC')::date, 9999)",
       [projectId]
     );
@@ -547,11 +548,15 @@ describe('Pushlane over HTTP and PostgreSQL', () => {
   it('keeps credentials and endpoints encrypted in database records and out of logs', async () => {
     const { apiKey, projectId } = await project();
     const installation = await register(apiKey, randomUUID());
-    const [stored] = await db.rows(
-      z.object({ endpoint_ciphertext: z.string() }),
-      'SELECT endpoint_ciphertext FROM installations WHERE project_id = $1 AND id = $2',
-      [projectId, installation.installationId]
-    );
+    const [stored] = z
+      .object({ endpoint_ciphertext: z.string() })
+      .array()
+      .parse(
+        await db.query(
+          'SELECT endpoint_ciphertext FROM installations WHERE project_id = $1 AND id = $2',
+          [projectId, installation.installationId]
+        )
+      );
 
     expect(stored?.endpoint_ciphertext).not.toContain(installation.endpoint.token);
 
@@ -709,7 +714,7 @@ describe('Pushlane over HTTP and PostgreSQL', () => {
     const { apiKey } = await project();
     const installation = await register(apiKey, 'alice');
 
-    await db.execute(
+    await db.query(
       "UPDATE installation_sessions SET expires_at = now() - interval '1 second' WHERE installation_id = $1",
       [installation.installationId]
     );
@@ -753,11 +758,15 @@ describe('Pushlane over HTTP and PostgreSQL', () => {
 
     await worker.tick();
 
-    const [scheduled] = await db.rows(
-      z.object({ at_expiry: z.boolean() }),
-      'SELECT d.next_attempt_at = n.expires_at AS at_expiry FROM deliveries d JOIN notifications n ON n.id = d.notification_id WHERE n.id = $1',
-      [receipt.id]
-    );
+    const [scheduled] = z
+      .object({ at_expiry: z.boolean() })
+      .array()
+      .parse(
+        await db.query(
+          'SELECT d.next_attempt_at = n.expires_at AS at_expiry FROM deliveries d JOIN notifications n ON n.id = d.notification_id WHERE n.id = $1',
+          [receipt.id]
+        )
+      );
 
     expect(scheduled?.at_expiry).toBe(true);
   });
@@ -768,7 +777,7 @@ describe('Pushlane over HTTP and PostgreSQL', () => {
     const freeReceipt = await send(free.apiKey, randomUUID());
     const selfReceipt = await send(selfHosted.apiKey, randomUUID());
 
-    await db.execute(
+    await db.query(
       "UPDATE notifications SET created_at = now() - interval '8 days' WHERE id = ANY($1::uuid[])",
       [[freeReceipt.id, selfReceipt.id]]
     );

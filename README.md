@@ -105,7 +105,7 @@ pnpm check
 
 This runs typechecking, Oxlint and Prettier, provider and SDK tests, Nest builds, dashboard build, and Starlight build.
 
-Integration tests require a dedicated PostgreSQL database. They do not truncate an existing database.
+Integration tests require a dedicated PostgreSQL database. They drop every table in that database, then apply the migrations. Never point `TEST_DATABASE_URL` at a database you want to keep.
 
 ```sh
 docker compose exec postgres createdb -U pushlane pushlane_test
@@ -123,13 +123,14 @@ Native tests cover client HTTP behavior. Real APNs and FCM delivery, physical-de
 
 ## Repository
 
-- `apps/api` is the NestJS HTTP service.
-- `apps/worker` is the independent delivery worker.
+- `apps/api` is the NestJS HTTP service. Each feature (`projects`, `installations`, `notifications`, `health`) is a module with its controller and service.
+- `apps/worker` is the independent delivery worker. `delivery` owns the queue consumer.
 - `apps/dashboard` is a static TypeScript dashboard deployed to Cloudflare Workers static assets.
 - `apps/docs` is the Astro Starlight documentation site.
-- `libs` holds contracts, application services, PostgreSQL access, and providers.
+- `libs/contracts` holds shared schemas. `libs/database` holds TypeORM entities, migrations, and credential encryption. `libs/providers` holds the APNs, FCM, and Web Push transports.
 - `packages/sdk` contains the TypeScript server, browser, and service worker clients.
 - `sdks/swift` and `sdks/android` contain native registration clients.
-- `migrations` holds immutable PostgreSQL schema migrations.
+
+Change the schema by editing an entity, then run `pnpm db:migration:generate libs/database/src/migrations/<name>` and register the class in `libs/database/src/migrations/index.ts`. `pnpm db:schema:check` fails when entities and migrations disagree. CI runs it.
 
 Read [the architecture](docs/architecture.md) and [the implementation review](docs/review.md) before changing identity or queue behavior.

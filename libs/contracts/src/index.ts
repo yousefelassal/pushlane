@@ -108,6 +108,21 @@ export const deliveryStatusSchema = z.enum([
 
 export type DeliveryStatus = z.infer<typeof deliveryStatusSchema>;
 
+/** Every delivery attempt records exactly one of these terminal or retry results. */
+export const attemptResultSchema = z.enum([
+  'accepted',
+  'retry',
+  'rejected',
+  'expired',
+  'suppressed',
+]);
+
+export type AttemptResult = z.infer<typeof attemptResultSchema>;
+
+export type ProviderKind = PushEndpoint['kind'];
+
+export const providerKinds = ['apns', 'fcm', 'webpush'] as const satisfies readonly ProviderKind[];
+
 /** Provider responses describe acceptance, never an unobserved device receipt. */
 export type DispatchResult =
   | { kind: 'accepted'; providerMessageId: string }
@@ -134,6 +149,11 @@ export interface NotificationReceipt {
 }
 
 export const planSchema = z.enum(['free', 'pro', 'self_hosted']);
+
+/** Each project is one isolated environment with its own backend key. */
+export const environmentSchema = z.enum(['development', 'production']);
+
+export type Environment = z.infer<typeof environmentSchema>;
 
 export type Plan = z.infer<typeof planSchema>;
 

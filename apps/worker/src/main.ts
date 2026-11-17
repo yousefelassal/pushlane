@@ -4,9 +4,9 @@ import { setTimeout } from 'node:timers/promises';
 import { Logger } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 
-import { DeliveryWorker } from '../../../libs/core/src/delivery-worker.js';
 import { RuntimeConfig } from '../../../libs/database/src/config.js';
 import { closeApnsConnections } from '../../../libs/providers/src/index.js';
+import { DeliveryWorker } from './delivery/delivery-worker.service.js';
 import { WorkerModule } from './worker.module.js';
 
 const app = await NestFactory.createApplicationContext(WorkerModule);

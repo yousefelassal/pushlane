@@ -1,12 +1,10 @@
 import { Module } from '@nestjs/common';
 
-import { DeliveryWorker } from '../../../libs/core/src/delivery-worker.js';
-import { InfrastructureModule } from '../../../libs/database/src/infrastructure.module.js';
-import { ProviderDispatcher } from '../../../libs/providers/src/index.js';
+import { DatabaseModule } from '../../../libs/database/src/database.module.js';
+import { DeliveryModule } from './delivery/delivery.module.js';
 
 /** Runs durable jobs independently from API request lifetime. */
 @Module({
-  imports: [InfrastructureModule],
-  providers: [ProviderDispatcher, DeliveryWorker],
+  imports: [DatabaseModule, DeliveryModule],
 })
 export class WorkerModule {}

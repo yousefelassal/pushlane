@@ -1,4 +1,16 @@
-import { RuntimeConfig } from '../libs/database/src/config.js';
-import { runMigrations } from '../libs/database/src/migrations.js';
+import { DataSource } from 'typeorm';
 
-await runMigrations(new RuntimeConfig().values.DATABASE_URL);
+import { RuntimeConfig } from '../libs/database/src/config.js';
+import { dataSourceOptions } from '../libs/database/src/data-source.js';
+
+const dataSource = await new DataSource(
+  dataSourceOptions(new RuntimeConfig().values.DATABASE_URL)
+).initialize();
+
+try {
+  for (const migration of await dataSource.runMigrations()) {
+    process.stdout.write(`Applied ${migration.name}\n`);
+  }
+} finally {
+  await dataSource.destroy();
+}

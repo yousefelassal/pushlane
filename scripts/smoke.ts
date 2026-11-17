@@ -10,8 +10,8 @@ import { NestFactory } from '@nestjs/core';
 import { chromium, expect } from '@playwright/test';
 import { z } from 'zod';
 
-import { CoreModule } from '../libs/core/src/core.module.js';
-import { Projects } from '../libs/core/src/projects.js';
+import { ProjectsService } from '../apps/api/src/projects/projects.service.js';
+import { CliModule } from './cli.module.js';
 
 import type { ChildProcess } from 'node:child_process';
 
@@ -73,10 +73,10 @@ async function run(command: string, args: string[], env: NodeJS.ProcessEnv): Pro
 const port = await freePort();
 const dashboardPort = await freePort();
 
-const context = await NestFactory.createApplicationContext(CoreModule, {
+const context = await NestFactory.createApplicationContext(CliModule, {
   logger: false,
 });
-const project = await context.get(Projects).create({
+const project = await context.get(ProjectsService).create({
   name: 'Local verification',
   environment: 'development',
   plan: 'self_hosted',

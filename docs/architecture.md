@@ -4,11 +4,10 @@ Pushlane registers authenticated installations and sends a notification to the a
 
 ## Boundaries
 
-- `apps/api` validates HTTP inputs, and authenticates backend keys or installation sessions.
-- `apps/worker` claims durable deliveries and dispatches them through providers.
+- `apps/api` validates HTTP inputs and authenticates backend keys or installation sessions. Its feature modules own identity, installation lifecycle, and notification acceptance.
+- `apps/worker` owns queue processing. It claims durable deliveries and dispatches them through providers.
 - `libs/contracts` owns endpoint variants, notification schemas, provider results, and plan allowances.
-- `libs/core` owns identity, installation lifecycle, notification acceptance, and queue processing.
-- `libs/database` owns PostgreSQL connections and credential encryption. `migrations` owns the schema.
+- `libs/database` owns the TypeORM connection, entities, migrations, and credential encryption. Entities are the schema source. Migrations are generated from them and never edited after release.
 - `libs/providers` owns APNs, FCM, and Web Push transports.
 - `packages/sdk` owns the server and browser TypeScript clients. `sdks` contains Swift and Kotlin clients.
 - `apps/dashboard` owns the static dashboard, deployed separately to Cloudflare Workers static assets. `apps/docs` owns Astro Starlight documentation.

@@ -6,6 +6,8 @@ Read `docs/architecture.md` before changing authentication, endpoint ownership, 
 
 Use the repository Oxlint and Prettier configuration. Prettier sorts imports and `package.json` keys. Add JSDoc to public TypeScript APIs. Explain the contract or non-obvious behavior. Keep blank lines between logical operations. Avoid comment narration and unnecessary wrappers.
 
+Change the schema only through entities and generated migrations. Run `pnpm db:schema:check` after a schema change. Every write transaction for a project takes `lockProject` first.
+
 Notifications and delivery jobs must commit atomically. Every project lookup must include project scope. A registration token must never grant backend permissions. Logout and account switching must not resurrect old bindings. Endpoint invalidation must match the dispatched version and session.
 
 Tests must exercise observable behavior. Integration tests use a dedicated PostgreSQL database. Keep credentials, `.env` files, provider tokens, and build outputs out of Git.
