@@ -99,39 +99,8 @@ export async function dispatchWebPush(
 		};
 	}
 
-	let details: ReturnType<typeof generateRequestDetails>;
-
-	try {
-		details = generateRequestDetails(
-			request.endpoint.subscription,
-			JSON.stringify({
-				notificationId: request.deliveryId,
-				title: request.notification.title,
-				body: request.notification.body,
-				...(request.notification.image
-					? { image: request.notification.image }
-					: {}),
-				...(request.notification.url ? { url: request.notification.url } : {}),
-			}),
-			{
-				vapidDetails: credentials,
-				TTL: Math.max(
-					0,
-					Math.floor((request.expiresAt.getTime() - Date.now()) / 1000),
-				),
-				urgency: 'normal',
-			},
-		);
-	} catch {
-		return {
-			kind: 'rejected',
-			code: 'WEBPUSH_CONFIGURATION_INVALID',
-			invalidateEndpoint: false,
-		};
-	}
-
 	const signal = AbortSignal.timeout(12_000);
-	const destination = new URL(details.endpoint);
+	const destination = new URL(request.endpoint.subscription.endpoint);
 
 	try {
 		const addresses = await Promise.race([
@@ -164,6 +133,47 @@ export async function dispatchWebPush(
 		const address = addresses[0];
 
 		if (!address) return { kind: 'retry', code: 'WEBPUSH_DNS_ERROR' };
+
+		if (request.expiresAt.getTime() <= Date.now()) {
+			return {
+				kind: 'rejected',
+				code: 'NOTIFICATION_EXPIRED',
+				invalidateEndpoint: false,
+			};
+		}
+
+		let details: ReturnType<typeof generateRequestDetails>;
+
+		try {
+			details = generateRequestDetails(
+				request.endpoint.subscription,
+				JSON.stringify({
+					notificationId: request.deliveryId,
+					title: request.notification.title,
+					body: request.notification.body,
+					...(request.notification.image
+						? { image: request.notification.image }
+						: {}),
+					...(request.notification.url
+						? { url: request.notification.url }
+						: {}),
+				}),
+				{
+					vapidDetails: credentials,
+					TTL: Math.max(
+						0,
+						Math.floor((request.expiresAt.getTime() - Date.now()) / 1000),
+					),
+					urgency: 'normal',
+				},
+			);
+		} catch {
+			return {
+				kind: 'rejected',
+				code: 'WEBPUSH_CONFIGURATION_INVALID',
+				invalidateEndpoint: false,
+			};
+		}
 
 		return await new Promise<DispatchResult>((resolve) => {
 			const outgoing = httpsRequest(

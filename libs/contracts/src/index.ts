@@ -2,6 +2,11 @@ import { z } from 'zod';
 
 export const identifierSchema = z.string().min(1).max(200);
 
+/** Canonical UUID spelling keeps HTTP installation identity aligned with PostgreSQL. */
+export const installationIdSchema = z
+	.uuid()
+	.transform((id) => id.toLowerCase());
+
 const httpsUrlSchema = z
 	.url()
 	.refine((value) => new URL(value).protocol === 'https:', 'Use an HTTPS URL.');
@@ -26,7 +31,7 @@ export const endpointSchema = z.discriminatedUnion('kind', [
 			kind: z.literal('webpush'),
 			subscription: z
 				.object({
-					endpoint: httpsUrlSchema,
+					endpoint: httpsUrlSchema.transform((value) => new URL(value).href),
 					keys: z
 						.object({
 							p256dh: z.string().regex(/^[\w-]{87}$/),
@@ -60,7 +65,7 @@ export const notificationSchema = z
 export type NotificationInput = z.infer<typeof notificationSchema>;
 
 export const registrationTokenSchema = z
-	.object({ userId: identifierSchema, installationId: z.uuid() })
+	.object({ userId: identifierSchema, installationId: installationIdSchema })
 	.strict();
 
 export const providerCredentialsSchema = z

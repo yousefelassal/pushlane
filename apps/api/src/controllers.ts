@@ -17,6 +17,7 @@ import {
 import { z } from 'zod';
 import {
 	endpointSchema,
+	installationIdSchema,
 	notificationSchema,
 	registrationTokenSchema,
 } from '../../../libs/contracts/src/index.js';
@@ -133,7 +134,7 @@ export class InstallationController {
 	) {
 		return this.installations.register(
 			bearerToken(authorization),
-			parse(z.uuid(), id),
+			parse(installationIdSchema, id),
 			parse(endpointSchema, body),
 		);
 	}
@@ -146,7 +147,7 @@ export class InstallationController {
 	) {
 		return this.installations.revoke(
 			bearerToken(authorization),
-			parse(z.uuid(), id),
+			parse(installationIdSchema, id),
 		);
 	}
 }
