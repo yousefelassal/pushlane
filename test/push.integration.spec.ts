@@ -14,6 +14,8 @@ import { configureApi } from '../apps/api/src/configure.js';
 import { ProjectsService } from '../apps/api/src/projects/projects.service.js';
 import { DeliveryWorker, DISPATCHER } from '../apps/worker/src/delivery/delivery-worker.service.js';
 import { DeliveryModule } from '../apps/worker/src/delivery/delivery.module.js';
+import { RetentionModule } from '../apps/worker/src/retention/retention.module.js';
+import { RetentionService } from '../apps/worker/src/retention/retention.service.js';
 import {
   type Dispatcher,
   type DispatchRequest,
@@ -59,6 +61,7 @@ describe('Pushlane over HTTP and PostgreSQL', () => {
   let db: DataSource;
   let projects: ProjectsService;
   let worker: DeliveryWorker;
+  let retention: RetentionService;
   let receiver: Server;
   let receiverUrl: string;
   const received: unknown[] = [];
@@ -144,7 +147,7 @@ describe('Pushlane over HTTP and PostgreSQL', () => {
 
   async function startApplication() {
     const module = await Test.createTestingModule({
-      imports: [AppModule, DeliveryModule],
+      imports: [AppModule, DeliveryModule, RetentionModule],
     })
       .overrideProvider(DISPATCHER)
       .useValue(dispatcher)
@@ -162,6 +165,7 @@ describe('Pushlane over HTTP and PostgreSQL', () => {
     db = app.get(DataSource);
     projects = app.get(ProjectsService);
     worker = app.get(DeliveryWorker);
+    retention = app.get(RetentionService);
   }
 
   afterAll(async () => {
@@ -781,7 +785,7 @@ describe('Pushlane over HTTP and PostgreSQL', () => {
       "UPDATE notifications SET created_at = now() - interval '8 days' WHERE id = ANY($1::uuid[])",
       [[freeReceipt.id, selfReceipt.id]]
     );
-    await worker.cleanup();
+    await retention.cleanup();
 
     expect((await request(`/v1/notifications/${freeReceipt.id}`, free.apiKey)).status).toBe(404);
     expect((await detail(selfHosted.apiKey, selfReceipt.id)).notification.id).toBe(selfReceipt.id);

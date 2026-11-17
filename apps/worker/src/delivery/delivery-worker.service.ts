@@ -2,11 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 
-import {
-  endpointSchema,
-  PLAN_LIMITS,
-  providerCredentialsSchema,
-} from '../../../../libs/contracts/src/index.js';
+import { endpointSchema, providerCredentialsSchema } from '../../../../libs/contracts/src/index.js';
 import { SecretCipher } from '../../../../libs/database/src/cipher.js';
 import {
   Delivery,
@@ -74,25 +70,6 @@ export class DeliveryWorker {
     await Promise.all(jobs.map((job) => this.process(job)));
 
     return jobs.length;
-  }
-
-  /** Purges cloud logs after plan retention and leaves self-hosted history intact. */
-  async cleanup(): Promise<void> {
-    for (const [plan, { logRetentionDays }] of Object.entries(PLAN_LIMITS)) {
-      if (logRetentionDays === null) continue;
-
-      await this.dataSource
-        .createQueryBuilder()
-        .delete()
-        .from(Notification)
-        .where('project_id IN (SELECT p.id FROM projects p WHERE p.plan = :plan)', { plan })
-        .andWhere('created_at < now() - make_interval(days => :days)', { days: logRetentionDays })
-        .andWhere(
-          'NOT EXISTS (SELECT 1 FROM deliveries d WHERE d.notification_id = notifications.id AND d.status IN (:...active))',
-          { active: ['queued', 'retrying', 'processing'] satisfies DeliveryStatus[] }
-        )
-        .execute();
-    }
   }
 
   /** Takes one due job, or one whose previous worker lost its lease, and records the lost attempt. */

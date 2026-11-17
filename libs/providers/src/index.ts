@@ -1,4 +1,4 @@
-import { dispatchApns } from './apns.js';
+import { closeApnsConnections, dispatchApns } from './apns.js';
 import { dispatchFcm } from './fcm.js';
 import { dispatchWebPush } from './webpush.js';
 
@@ -24,6 +24,11 @@ export class ProviderDispatcher implements Dispatcher {
       case 'webpush':
         return dispatchWebPush({ ...request, endpoint: request.endpoint });
     }
+  }
+
+  /** Called by Nest after the worker drains, so no dispatch holds a closed APNs session. */
+  onApplicationShutdown(): void {
+    closeApnsConnections();
   }
 }
 

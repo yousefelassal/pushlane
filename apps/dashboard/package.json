@@ -10,11 +10,25 @@
     "preview": "wrangler dev"
   },
   "dependencies": {
+    "@pushlane/ui": "workspace:*",
+    "@tanstack/react-form": "1.29.1",
+    "@tanstack/react-query": "5.100.2",
+    "@tanstack/react-router": "1.170.46",
+    "@tanstack/react-table": "8.21.3",
+    "lucide-react": "1.74.0",
+    "react": "19.2.7",
+    "react-dom": "19.2.7",
+    "sonner": "2.0.8",
     "zod": "4.6.7"
   },
   "devDependencies": {
+    "@tailwindcss/vite": "4.3.5",
+    "@types/react": "19.2.14",
+    "@types/react-dom": "19.2.3",
+    "@vitejs/plugin-react": "6.3.0",
+    "tailwindcss": "4.3.5",
     "typescript": "5.9.3",
-    "vite": "6.4.1",
+    "vite": "8.3.8",
     "wrangler": "4.164.0"
   }
 }

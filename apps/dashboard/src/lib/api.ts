@@ -72,6 +72,8 @@ const errorSchema = z.object({
 
 export type Project = z.infer<typeof projectSchema>;
 export type NotificationLog = z.infer<typeof notificationSchema>;
+export type NotificationDetail = z.infer<typeof detailSchema>;
+export type Receipt = z.infer<typeof receiptSchema>;
 
 const apiBase = readApiBase();
 

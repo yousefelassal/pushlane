@@ -1,3 +1,6 @@
+import { resolve } from 'node:path';
+import tailwindcss from '@tailwindcss/vite';
+import react from '@vitejs/plugin-react';
 import { defineConfig, loadEnv } from 'vite';
 
 import type { Plugin } from 'vite';
@@ -13,6 +16,7 @@ function securityHeaders(apiOrigin: string): Plugin {
     "default-src 'self'",
     `connect-src 'self'${apiOrigin ? ` ${apiOrigin}` : ''}`,
     "img-src 'self' data:",
+    "font-src 'self'",
     "object-src 'none'",
     "base-uri 'none'",
     "form-action 'self'",
@@ -46,7 +50,10 @@ export default defineConfig(({ mode }) => {
   }
 
   return {
-    plugins: [securityHeaders(apiBase ? new URL(apiBase).origin : '')],
+    plugins: [react(), tailwindcss(), securityHeaders(apiBase ? new URL(apiBase).origin : '')],
+    resolve: {
+      alias: { '@': resolve(import.meta.dirname, 'src') },
+    },
     server: {
       proxy: {
         '/v1': 'http://127.0.0.1:3020',
