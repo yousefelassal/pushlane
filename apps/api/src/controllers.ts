@@ -11,7 +11,6 @@ import {
   Post,
   Put,
   Query,
-  Redirect,
   UseGuards,
 } from '@nestjs/common';
 import { z } from 'zod';
@@ -49,10 +48,6 @@ function parse<T>(schema: z.ZodType<T>, value: unknown): T {
 @Controller()
 export class HealthController {
   constructor(@Inject(Database) private readonly db: Database) {}
-
-  @Get()
-  @Redirect('/dashboard/', 302)
-  index() {}
 
   @Get('health')
   async health() {

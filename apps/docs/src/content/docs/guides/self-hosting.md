@@ -20,7 +20,6 @@ Install dependencies and run migrations before starting the applications.
 ```sh
 pnpm install --frozen-lockfile
 pnpm db:migrate
-pnpm dashboard:build
 pnpm build
 ```
 
@@ -40,7 +39,7 @@ pnpm start:worker
 
 Use a process supervisor or container orchestrator to restart failed processes. The worker reclaims expired delivery leases after a crash. Several workers can share the database because claims use row locks and lease tokens.
 
-Open `/dashboard/` on the API origin and connect with a project backend key. Limit dashboard access to trusted operators.
+Deploy the dashboard separately to Cloudflare Workers static assets with `VITE_API_BASE_URL=https://your-api-origin pnpm dashboard:deploy`, and add its origin to `CORS_ORIGINS`. Connect with a project backend key. Limit dashboard access to trusted operators.
 
 ## Preserve delivery semantics
 

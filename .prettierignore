@@ -10,3 +10,4 @@ LICENSE
 **/.agents/
 **/.claude/
 skills-lock.json
+**/.wrangler/

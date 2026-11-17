@@ -1,0 +1,13 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "pushlane-dashboard",
+  "compatibility_date": "2026-11-01",
+  // Assets only: no Worker script runs, so every request is served from the Vite build.
+  "assets": {
+    "directory": "./dist",
+    "not_found_handling": "single-page-application"
+  },
+  "observability": {
+    "enabled": true
+  }
+}

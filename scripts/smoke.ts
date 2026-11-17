@@ -38,21 +38,40 @@ async function stop(child: ChildProcess): Promise<void> {
   await exited;
 }
 
-const probe = createServer();
+/** Reserves an ephemeral local port for a child process. */
+async function freePort(): Promise<number> {
+  const probe = createServer();
 
-probe.listen(0, '127.0.0.1');
+  probe.listen(0, '127.0.0.1');
 
-await once(probe, 'listening');
+  await once(probe, 'listening');
 
-const address = probe.address();
+  const address = probe.address();
 
-assert(address && typeof address !== 'string');
+  assert(address && typeof address !== 'string');
 
-const port = address.port;
+  await new Promise<void>((resolve, reject) =>
+    probe.close((error) => (error ? reject(error) : resolve()))
+  );
 
-await new Promise<void>((resolve, reject) =>
-  probe.close((error) => (error ? reject(error) : resolve()))
-);
+  return address.port;
+}
+
+/** Runs a build step to completion and surfaces its output only on failure. */
+async function run(command: string, args: string[], env: NodeJS.ProcessEnv): Promise<void> {
+  const child = spawn(command, args, { env, stdio: ['ignore', 'pipe', 'pipe'] });
+  let output = '';
+
+  child.stdout?.on('data', (chunk: Buffer) => (output += chunk.toString()));
+  child.stderr?.on('data', (chunk: Buffer) => (output += chunk.toString()));
+
+  const [code] = (await once(child, 'exit')) as [number | null];
+
+  if (code !== 0) throw new Error(`${command} ${args.join(' ')} failed:\n${output}`);
+}
+
+const port = await freePort();
+const dashboardPort = await freePort();
 
 const context = await NestFactory.createApplicationContext(CoreModule, {
   logger: false,
@@ -67,11 +86,19 @@ const project = await context.get(Projects).create({
 await context.close();
 
 const baseUrl = `http://127.0.0.1:${port}`;
+const dashboardUrl = `http://127.0.0.1:${dashboardPort}`;
+
+await run('pnpm', ['--filter', '@pushlane/dashboard', 'build'], {
+  ...process.env,
+  VITE_API_BASE_URL: baseUrl,
+});
+
 const childEnvironment = {
   ...process.env,
   PORT: String(port),
   HOST: '127.0.0.1',
   WORKER_INTERVAL_MS: '100',
+  CORS_ORIGINS: dashboardUrl,
 };
 const api = spawn(process.execPath, ['dist/apps/api/src/main.js'], {
   env: childEnvironment,
@@ -81,9 +108,24 @@ const worker = spawn(process.execPath, ['dist/apps/worker/src/main.js'], {
   env: childEnvironment,
   stdio: ['ignore', 'ignore', 'pipe'],
 });
+const dashboard = spawn(
+  'pnpm',
+  [
+    '--filter',
+    '@pushlane/dashboard',
+    'exec',
+    'wrangler',
+    'dev',
+    '--ip',
+    '127.0.0.1',
+    '--port',
+    String(dashboardPort),
+  ],
+  { env: { ...process.env, WRANGLER_SEND_METRICS: 'false' }, stdio: ['ignore', 'ignore', 'pipe'] }
+);
 let diagnostics = '';
 
-for (const child of [api, worker]) {
+for (const child of [api, worker, dashboard]) {
   child.stderr?.on('data', (chunk: Buffer) => {
     diagnostics += chunk.toString();
   });
@@ -103,6 +145,7 @@ async function request(path: string, method = 'GET', body?: unknown, key = proje
 
 try {
   await eventually(async () => (await fetch(`${baseUrl}/health`)).ok, 'the compiled API');
+  await eventually(async () => (await fetch(dashboardUrl)).ok, 'the dashboard on Workers assets');
 
   const installationId = randomUUID();
   const userId = `smoke-${randomUUID()}`;
@@ -154,7 +197,7 @@ try {
 
     page.on('pageerror', (error) => errors.push(error.message));
 
-    await page.goto(`${baseUrl}/dashboard/`);
+    await page.goto(dashboardUrl);
     await page.getByLabel('Project API key').fill(project.apiKey);
     await page.getByRole('button', { name: 'Connect project' }).click();
     await expect(page.locator('#project-name')).toHaveText('Local verification');
@@ -183,13 +226,14 @@ try {
   }
 
   process.stdout.write(
-    'Verified compiled API, PostgreSQL persistence, worker failure logs, and live dashboard connection, inspection, sending, mobile layout, and disconnect.\n'
+    'Verified compiled API, PostgreSQL persistence, worker failure logs, and the Workers-served dashboard connection, inspection, sending, mobile layout, and disconnect.\n'
   );
 } catch (error) {
   if (diagnostics) process.stderr.write(diagnostics);
 
   throw error;
 } finally {
+  await stop(dashboard);
   await stop(worker);
   await stop(api);
 }

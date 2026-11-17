@@ -15,7 +15,6 @@ pnpm install
 pnpm setup:local
 docker compose up -d postgres
 pnpm db:migrate
-pnpm dashboard:build
 pnpm build
 pnpm project:create --name demo
 ```
@@ -29,7 +28,7 @@ pnpm start
 pnpm start:worker
 ```
 
-Open `http://localhost:3020/dashboard/` and connect with the project key. Start the documentation with `pnpm docs:dev`.
+Start the dashboard with `pnpm --filter @pushlane/dashboard dev`, open the printed URL, and connect with the project key. Start the documentation with `pnpm docs:dev`.
 
 `pnpm dev` and `pnpm dev:worker` provide watch mode. They load your local `.env` file automatically.
 
@@ -124,9 +123,9 @@ Native tests cover client HTTP behavior. Real APNs and FCM delivery, physical-de
 
 ## Repository
 
-- `apps/api` is the NestJS HTTP service and dashboard host.
+- `apps/api` is the NestJS HTTP service.
 - `apps/worker` is the independent delivery worker.
-- `apps/dashboard` is a static TypeScript dashboard.
+- `apps/dashboard` is a static TypeScript dashboard deployed to Cloudflare Workers static assets.
 - `apps/docs` is the Astro Starlight documentation site.
 - `libs` holds contracts, application services, PostgreSQL access, and providers.
 - `packages/sdk` contains the TypeScript server, browser, and service worker clients.

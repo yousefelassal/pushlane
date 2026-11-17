@@ -3,7 +3,7 @@ WORKDIR /app
 RUN corepack enable
 COPY . .
 RUN pnpm install --frozen-lockfile
-RUN pnpm build && pnpm dashboard:build
+RUN pnpm build
 
 FROM node:24-bookworm-slim AS runtime
 WORKDIR /app

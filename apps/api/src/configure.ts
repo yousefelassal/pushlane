@@ -1,4 +1,3 @@
-import { resolve } from 'node:path';
 import express from 'express';
 import helmet from 'helmet';
 
@@ -20,6 +19,5 @@ export function configureApi(app: INestApplication): void {
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
     allowedHeaders: ['Authorization', 'Content-Type', 'Idempotency-Key'],
   });
-  app.use('/dashboard', express.static(resolve('apps/dashboard/dist'), { index: 'index.html' }));
   app.enableShutdownHooks();
 }

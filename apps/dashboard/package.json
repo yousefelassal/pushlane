@@ -5,13 +5,16 @@
   "type": "module",
   "scripts": {
     "build": "tsc --noEmit && vite build",
-    "dev": "vite --host 127.0.0.1"
+    "deploy": "tsc --noEmit && vite build --mode cloudflare && wrangler deploy",
+    "dev": "vite --host 127.0.0.1",
+    "preview": "wrangler dev"
   },
   "dependencies": {
     "zod": "4.6.7"
   },
   "devDependencies": {
     "typescript": "5.9.3",
-    "vite": "6.4.1"
+    "vite": "6.4.1",
+    "wrangler": "4.164.0"
   }
 }

@@ -28,7 +28,7 @@ try {
 
   for (let attempt = 0; attempt < 100; attempt += 1) {
     try {
-      const response = await fetch(`${base}/dashboard/`);
+      const response = await fetch(`${base}/`);
 
       if (response.ok) {
         ready = true;
@@ -142,7 +142,7 @@ try {
     }
   });
 
-  await page.goto(`${base}/dashboard/`);
+  await page.goto(`${base}/`);
   assert(
     await page.getByRole('heading', { name: 'Your next notification starts here.' }).isVisible()
   );
